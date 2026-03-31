@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\WalkingFirstPersonController.cs" />
+    <Compile Include="Assets\Scripts\GoalClearReset.cs" />
     <Compile Include="Assets\Scripts\DualSenseTest.cs" />
     <Compile Include="Assets\Scripts\targetAction.cs" />
     <Compile Include="Assets\Scripts\EnemyHapticByDirection.cs" />
