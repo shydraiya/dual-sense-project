@@ -1,57 +1,87 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class EnemyHapticByDirection : MonoBehaviour
 {
     public Transform player;
-    public Transform enemy;
+    public List<Transform> enemies = new List<Transform>();
+    public bool autoFindEnemiesByTag;
+    public string enemyTag = "Enemy";
 
-    public float maxDistance = 10f;   // 이 거리보다 멀면 진동 0
-    public float maxMotorPower = 1f;  // 최대 진동 세기
+    public float maxDistance = 10f;
+    public float maxMotorPower = 1f;
 
-    void Update()
+    private void Update()
     {
         Gamepad pad = Gamepad.current;
-        if (pad == null || player == null || enemy == null)
-            return;
-
-        Vector3 toEnemy = enemy.position - player.position;
-        float distance = toEnemy.magnitude;
-
-        if (distance > maxDistance)
+        if (pad == null || player == null)
         {
-            pad.SetMotorSpeeds(0f, 0f);
             return;
         }
-
-        // 거리 기반 세기: 가까울수록 1에 가까움
-        float strength = 1f - Mathf.Clamp01(distance / maxDistance);
-        strength *= strength;
-        strength *= maxMotorPower;
-
-        // 플레이어 기준 오른쪽 방향과 비교
-        float side = Vector3.Dot(player.right, toEnemy.normalized);
 
         float leftMotor = 0f;
         float rightMotor = 0f;
 
-        if (side < 0f)
+        IEnumerable<Transform> enemyTargets = GetEnemyTargets();
+        foreach (Transform enemy in enemyTargets)
         {
-            // 적이 왼쪽
-            leftMotor = strength;
-        }
-        else
-        {
-            // 적이 오른쪽
-            rightMotor = strength;
+            if (enemy == null)
+            {
+                continue;
+            }
+
+            Vector3 toEnemy = enemy.position - player.position;
+            float distance = toEnemy.magnitude;
+            if (distance > maxDistance || distance <= 0.001f)
+            {
+                continue;
+            }
+
+            float strength = 1f - Mathf.Clamp01(distance / maxDistance);
+            strength *= strength;
+            strength *= maxMotorPower;
+
+            float side = Vector3.Dot(player.right, toEnemy.normalized);
+            if (side < 0f)
+            {
+                leftMotor += strength;
+            }
+            else
+            {
+                rightMotor += strength;
+            }
         }
 
-        pad.SetMotorSpeeds(leftMotor, rightMotor);
+        pad.SetMotorSpeeds(
+            Mathf.Clamp01(leftMotor),
+            Mathf.Clamp01(rightMotor));
+    }
+
+    private IEnumerable<Transform> GetEnemyTargets()
+    {
+        if (autoFindEnemiesByTag)
+        {
+            GameObject[] taggedEnemies = GameObject.FindGameObjectsWithTag(enemyTag);
+            foreach (GameObject enemyObject in taggedEnemies)
+            {
+                yield return enemyObject.transform;
+            }
+
+            yield break;
+        }
+
+        foreach (Transform enemy in enemies)
+        {
+            yield return enemy;
+        }
     }
 
     private void OnDisable()
     {
         if (Gamepad.current != null)
+        {
             Gamepad.current.SetMotorSpeeds(0f, 0f);
+        }
     }
 }

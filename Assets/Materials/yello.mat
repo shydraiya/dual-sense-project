@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: red
+  m_Name: yello
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 2100000, guid: 5d531469ee488be408a3084c068a6c0e, type: 2}
   m_ModifiedSerializedProperties: 0
@@ -28,8 +28,8 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _BaseColor: {r: 1, g: 0.033018887, b: 0.033018887, a: 1}
-    - _Color: {r: 1, g: 0.033018887, b: 0.033018887, a: 1}
+    - _BaseColor: {r: 1, g: 0.9731224, b: 0.031372547, a: 1}
+    - _Color: {r: 1, g: 0.9731224, b: 0.031372547, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &3338180911820393961
