@@ -4,6 +4,8 @@ using UnityEngine.AI;
 
 public class targetAction : MonoBehaviour
 {
+    private static readonly List<targetAction> ActiveEnemies = new List<targetAction>();
+
     public enum PatrolActionType
     {
         None,
@@ -70,6 +72,8 @@ public class targetAction : MonoBehaviour
     private int patrolDirection = 1;
     private bool isPerformingPatrolAction;
     private float patrolActionEndTime;
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
 
     private void Start()
     {
@@ -98,7 +102,23 @@ public class targetAction : MonoBehaviour
             originalColor = rend.material.color;
         }
 
+        initialPosition = transform.position;
+        initialRotation = transform.rotation;
+
         BeginPatrolAtCurrentPoint(true);
+    }
+
+    private void OnEnable()
+    {
+        if (!ActiveEnemies.Contains(this))
+        {
+            ActiveEnemies.Add(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        ActiveEnemies.Remove(this);
     }
 
     private void Update()
@@ -107,11 +127,8 @@ public class targetAction : MonoBehaviour
         {
             Vector3 directionToPlayer = player.position - transform.position;
             float distanceToPlayer = directionToPlayer.magnitude;
-            float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer.normalized);
 
-            if (distanceToPlayer < detectionDistance &&
-                angleToPlayer < viewAngle * 0.5f &&
-                HasLineOfSightToPlayer())
+            if (CanContinueChase(directionToPlayer, distanceToPlayer))
             {
                 HandlePlayerDetection(directionToPlayer, distanceToPlayer);
                 return;
@@ -124,6 +141,22 @@ public class targetAction : MonoBehaviour
         }
 
         HandlePatrol();
+    }
+
+    private bool CanContinueChase(Vector3 directionToPlayer, float distanceToPlayer)
+    {
+        if (player == null || distanceToPlayer >= detectionDistance)
+        {
+            return false;
+        }
+
+        if (isChasingPlayer)
+        {
+            return HasLineOfSightToPlayer();
+        }
+
+        float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer.normalized);
+        return angleToPlayer < viewAngle * 0.5f && HasLineOfSightToPlayer();
     }
 
     private void HandlePlayerDetection(Vector3 directionToPlayer, float distanceToPlayer)
@@ -436,5 +469,45 @@ public class targetAction : MonoBehaviour
         flatOffsetBetweenPoints.y = 0f;
 
         return flatOffsetBetweenPoints.magnitude;
+    }
+
+    public static void ResetAllEnemies()
+    {
+        foreach (targetAction enemy in ActiveEnemies)
+        {
+            if (enemy != null)
+            {
+                enemy.ResetEnemyState();
+            }
+        }
+    }
+
+    private void ResetEnemyState()
+    {
+        isChasingPlayer = false;
+        isAlertingPlayer = false;
+        isPerformingPatrolAction = false;
+        currentPatrolIndex = 0;
+        patrolDirection = 1;
+        lastDestinationUpdateTime = 0f;
+        alertStartTime = 0f;
+        patrolActionEndTime = 0f;
+
+        if (rend != null)
+        {
+            rend.material.color = originalColor;
+        }
+
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+            agent.Warp(initialPosition);
+        }
+
+        transform.SetPositionAndRotation(initialPosition, initialRotation);
+
+        ApplyPatrolMovementSettings();
+        BeginPatrolAtCurrentPoint(true);
     }
 }

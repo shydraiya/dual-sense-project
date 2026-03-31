@@ -46,6 +46,7 @@ GameObject:
   - component: {fileID: 4582046512449894113}
   - component: {fileID: 1242489633435058436}
   - component: {fileID: 2018754207582838942}
+  - component: {fileID: 3907412256411087711}
   - component: {fileID: 7475902845706115925}
   m_Layer: 0
   m_Name: Player
@@ -187,6 +188,36 @@ MonoBehaviour:
   enemy: {fileID: 0}
   maxDistance: 20
   maxMotorPower: 1
+--- !u!114 &3907412256411087711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6090434388282206088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24d914c26d2b40e48ba9b4ae22dd8f41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapController
+  target: {fileID: 0}
+  enemyTag: Enemy
+  minimapHeight: 22
+  minimapSize: 18
+  minimapCullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  cameraBackgroundColor: {r: 0.05, g: 0.1, b: 0.12, a: 1}
+  panelSize: {x: 220, y: 220}
+  screenOffset: {x: -24, y: -24}
+  panelColor: {r: 0, g: 0, b: 0, a: 0.4}
+  borderColor: {r: 1, g: 1, b: 1, a: 0.9}
+  borderThickness: 3
+  playerMarkerColor: {r: 0.2, g: 1, b: 0.45, a: 1}
+  enemyMarkerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  playerMarkerSize: {x: 18, y: 18}
+  enemyMarkerSize: {x: 12, y: 12}
+  edgePadding: 10
 --- !u!54 &7475902845706115925
 Rigidbody:
   m_ObjectHideFlags: 0

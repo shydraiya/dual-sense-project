@@ -54,6 +54,7 @@
     <Compile Include="Assets\Scripts\DualSenseTest.cs" />
     <Compile Include="Assets\Scripts\targetAction.cs" />
     <Compile Include="Assets\Scripts\EnemyHapticByDirection.cs" />
+    <Compile Include="Assets\Scripts\MinimapController.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

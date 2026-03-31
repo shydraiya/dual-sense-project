@@ -29,7 +29,7 @@ public class DualSenseTest : MonoBehaviour
     public Color activeColor = Color.red;
     public Color successColor = Color.green;
 
-    [Header("Respawn")]
+    [Header("Reset")]
     public string enemyTag = "Enemy";
 
     private Vector2 moveInput;
@@ -43,7 +43,6 @@ public class DualSenseTest : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         FindDualSense();
-
         initialPosition = transform.position;
         initialRotation = transform.rotation;
 
@@ -165,7 +164,7 @@ public class DualSenseTest : MonoBehaviour
     {
         if (collision.gameObject.CompareTag(enemyTag))
         {
-            RespawnToInitialPosition();
+            ResetEnemies();
         }
     }
 
@@ -173,7 +172,7 @@ public class DualSenseTest : MonoBehaviour
     {
         if (other.CompareTag(enemyTag))
         {
-            RespawnToInitialPosition();
+            ResetEnemies();
         }
     }
 
@@ -229,7 +228,7 @@ public class DualSenseTest : MonoBehaviour
         dualSense.SetLightBarColor(idleColor);
     }
 
-    private void RespawnToInitialPosition()
+    private void ResetEnemies()
     {
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
@@ -240,6 +239,8 @@ public class DualSenseTest : MonoBehaviour
             cameraRoot.localRotation = initialCameraLocalRotation;
             pitch = NormalizeAngle(initialCameraLocalRotation.eulerAngles.x);
         }
+
+        targetAction.ResetAllEnemies();
     }
 
     private float NormalizeAngle(float angle)
