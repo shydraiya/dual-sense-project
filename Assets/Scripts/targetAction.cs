@@ -36,7 +36,7 @@ public class targetAction : MonoBehaviour
     public float eyeHeight = 1.6f;
     public float playerEyeHeight = 1.6f;
     public LayerMask obstructionMask = ~0;
-    public float chaseStopDistance = 1.2f;
+    public float chaseContactBuffer = 0.05f;
     public float destinationUpdateInterval = 0.1f;
 
     [Header("Speed")]
@@ -56,6 +56,8 @@ public class targetAction : MonoBehaviour
     private NavMeshAgent agent;
     private Rigidbody rb;
     private Transform player;
+    private Collider playerCollider;
+    private Collider enemyCollider;
     private Renderer rend;
     private Color originalColor;
 
@@ -73,10 +75,11 @@ public class targetAction : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
+        enemyCollider = GetComponent<Collider>();
         rend = GetComponent<Renderer>();
 
         ApplyPatrolMovementSettings();
-        agent.stoppingDistance = Mathf.Max(agent.stoppingDistance, chaseStopDistance);
+        agent.stoppingDistance = 0f;
 
         if (rb != null)
         {
@@ -85,6 +88,10 @@ public class targetAction : MonoBehaviour
         }
 
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (player != null)
+        {
+            playerCollider = player.GetComponent<Collider>();
+        }
 
         if (rend != null)
         {
@@ -158,11 +165,11 @@ public class targetAction : MonoBehaviour
             isPerformingPatrolAction = false;
         }
 
-        float stopDistance = Mathf.Max(chaseStopDistance, agent.radius + 0.1f);
-        Vector3 targetPosition = player.position - directionToPlayer.normalized * stopDistance;
+        float surfaceDistance = GetSurfaceDistanceToPlayer();
+        Vector3 targetPosition = player.position;
         targetPosition.y = transform.position.y;
 
-        if (distanceToPlayer <= stopDistance)
+        if (surfaceDistance <= chaseContactBuffer)
         {
             if (!agent.isStopped)
             {
@@ -405,5 +412,29 @@ public class targetAction : MonoBehaviour
 
         agent.SetDestination(destination);
         lastDestinationUpdateTime = Time.time;
+    }
+
+    private float GetSurfaceDistanceToPlayer()
+    {
+        float fallbackDistance = agent != null ? agent.radius : 0f;
+        if (player == null)
+        {
+            return fallbackDistance;
+        }
+
+        if (enemyCollider == null || playerCollider == null)
+        {
+            Vector3 flatOffset = player.position - transform.position;
+            flatOffset.y = 0f;
+            return Mathf.Max(0f, flatOffset.magnitude - agent.radius);
+        }
+
+        Vector3 enemyPoint = enemyCollider.ClosestPoint(player.position);
+        Vector3 playerPoint = playerCollider.ClosestPoint(transform.position);
+
+        Vector3 flatOffsetBetweenPoints = playerPoint - enemyPoint;
+        flatOffsetBetweenPoints.y = 0f;
+
+        return flatOffsetBetweenPoints.magnitude;
     }
 }

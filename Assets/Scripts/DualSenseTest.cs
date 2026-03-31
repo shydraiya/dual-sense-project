@@ -9,8 +9,8 @@ public class DualSenseTest : MonoBehaviour
     private Rigidbody rb;
 
     [Header("References")]
-    public Transform cameraRoot;   // 카메라 부모 상하 회전용
-    public Camera playerCamera;    // 메인 카메라
+    public Transform cameraRoot;
+    public Camera playerCamera;
 
     [Header("Move")]
     public float moveSpeed = 5f;
@@ -29,16 +29,24 @@ public class DualSenseTest : MonoBehaviour
     public Color activeColor = Color.red;
     public Color successColor = Color.green;
 
+    [Header("Respawn")]
+    public string enemyTag = "Enemy";
+
     private Vector2 moveInput;
     private Vector2 lookInput;
     private float pitch;
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
+    private Quaternion initialCameraLocalRotation = Quaternion.identity;
 
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
         FindDualSense();
 
-        // Rigidbody 설정 권장
+        initialPosition = transform.position;
+        initialRotation = transform.rotation;
+
         rb.freezeRotation = true;
 
         if (dualSense != null)
@@ -48,19 +56,28 @@ public class DualSenseTest : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("DualSenseGamepadHID not found. USB 연결 여부와 Input System 설정을 확인하세요.");
+            Debug.LogWarning("DualSenseGamepadHID not found. Check the USB connection and Input System settings.");
+        }
+
+        if (playerCamera == null)
+        {
+            playerCamera = Camera.main;
         }
 
         if (cameraRoot == null && playerCamera != null)
+        {
             cameraRoot = playerCamera.transform.parent;
+        }
 
-        if (playerCamera == null)
-            playerCamera = Camera.main;
+        if (cameraRoot != null)
+        {
+            initialCameraLocalRotation = cameraRoot.localRotation;
+            pitch = NormalizeAngle(cameraRoot.localEulerAngles.x);
+        }
     }
 
     private void Update()
     {
-        // 컨트롤러가 중간에 연결되어도 대응
         if (dualSense == null)
         {
             FindDualSense();
@@ -76,36 +93,29 @@ public class DualSenseTest : MonoBehaviour
             return;
         }
 
-        // 왼쪽 스틱: 이동
         moveInput = dualSense.leftStick.ReadValue();
-
-        // 오른쪽 스틱: 시점 회전
         lookInput = dualSense.rightStick.ReadValue();
 
         HandleLook();
 
-        // Cross 버튼: 왼쪽 모터 진동
         if (dualSense.buttonSouth.wasPressedThisFrame)
         {
             Pulse(1.0f, 0f, 0.15f, activeColor);
             Debug.Log($"DualSense Press Cross: {dualSense.displayName}");
         }
 
-        // Circle 버튼: 오른쪽 모터 진동
         if (dualSense.buttonEast.wasPressedThisFrame)
         {
             Pulse(0f, 1.0f, 0.15f, successColor);
             Debug.Log($"DualSense Press Circle: {dualSense.displayName}");
         }
 
-        // Square 버튼: 약한 오른쪽 진동
         if (dualSense.buttonWest.wasPressedThisFrame)
         {
             Pulse(0f, 0.1f, 0.15f, successColor);
             Debug.Log($"DualSense Press Square: {dualSense.displayName}");
         }
 
-        // Triangle 버튼: 약한 왼쪽 진동
         if (dualSense.buttonNorth.wasPressedThisFrame)
         {
             Pulse(0.1f, 0f, 0.15f, Color.yellow);
@@ -121,7 +131,6 @@ public class DualSenseTest : MonoBehaviour
             return;
         }
 
-        // 플레이어가 바라보는 방향 기준 이동
         Vector3 forward = transform.forward;
         Vector3 right = transform.right;
 
@@ -139,11 +148,9 @@ public class DualSenseTest : MonoBehaviour
 
     private void HandleLook()
     {
-        // 좌우 회전: 플레이어 본체(Yaw)
         float yaw = lookInput.x * lookSensitivity * Time.deltaTime;
         transform.Rotate(0f, yaw, 0f);
 
-        // 상하 회전: 카메라 루트(Pitch)
         float pitchDelta = lookInput.y * lookSensitivity * Time.deltaTime;
         pitch -= pitchDelta;
         pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
@@ -151,6 +158,22 @@ public class DualSenseTest : MonoBehaviour
         if (cameraRoot != null)
         {
             cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag(enemyTag))
+        {
+            RespawnToInitialPosition();
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag(enemyTag))
+        {
+            RespawnToInitialPosition();
         }
     }
 
@@ -173,13 +196,20 @@ public class DualSenseTest : MonoBehaviour
 
     private void SetLight(Color color)
     {
-        if (dualSense == null) return;
+        if (dualSense == null)
+        {
+            return;
+        }
+
         dualSense.SetLightBarColor(color);
     }
 
     private void Pulse(float low, float high, float duration, Color color)
     {
-        if (dualSense == null) return;
+        if (dualSense == null)
+        {
+            return;
+        }
 
         dualSense.SetMotorSpeeds(low, high);
         dualSense.SetLightBarColor(color);
@@ -188,18 +218,38 @@ public class DualSenseTest : MonoBehaviour
         Invoke(nameof(StopHapticsAndRestoreLight), duration);
     }
 
-    private void StopHaptics()
-    {
-        if (dualSense == null) return;
-        dualSense.SetMotorSpeeds(0f, 0f);
-    }
-
     private void StopHapticsAndRestoreLight()
     {
-        if (dualSense == null) return;
+        if (dualSense == null)
+        {
+            return;
+        }
 
         dualSense.SetMotorSpeeds(0f, 0f);
         dualSense.SetLightBarColor(idleColor);
+    }
+
+    private void RespawnToInitialPosition()
+    {
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        transform.SetPositionAndRotation(initialPosition, initialRotation);
+
+        if (cameraRoot != null)
+        {
+            cameraRoot.localRotation = initialCameraLocalRotation;
+            pitch = NormalizeAngle(initialCameraLocalRotation.eulerAngles.x);
+        }
+    }
+
+    private float NormalizeAngle(float angle)
+    {
+        if (angle > 180f)
+        {
+            angle -= 360f;
+        }
+
+        return angle;
     }
 
     private void OnDisable()
