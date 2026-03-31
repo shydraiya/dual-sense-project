@@ -9,7 +9,7 @@ public class DualSenseTest : MonoBehaviour
     private Rigidbody rb;
 
     [Header("References")]
-    public Transform cameraRoot;   // 카메라 부모(상하 회전용)
+    public Transform cameraRoot;   // 카메라 부모 상하 회전용
     public Camera playerCamera;    // 메인 카메라
 
     [Header("Move")]
@@ -60,7 +60,7 @@ public class DualSenseTest : MonoBehaviour
 
     private void Update()
     {
-        // 컨트롤러가 중간에 연결될 수도 있으니 재탐색
+        // 컨트롤러가 중간에 연결되어도 대응
         if (dualSense == null)
         {
             FindDualSense();

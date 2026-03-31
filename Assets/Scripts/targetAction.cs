@@ -8,6 +8,9 @@ public class targetAction : MonoBehaviour
     public Transform pointB;
     public float detectionDistance = 10f;
     public float viewAngle = 45f;
+    public float eyeHeight = 1.6f;
+    public float playerEyeHeight = 1.6f;
+    public LayerMask obstructionMask = ~0;
 
     // 이전 버전에 비해 추가됨:
     // 플레이어를 끝까지 들이받지 않도록 일정 거리를 두고 멈춘다.
@@ -17,8 +20,19 @@ public class targetAction : MonoBehaviour
     // 목적지를 너무 자주 다시 계산하지 않게 해서 떨림을 줄인다.
     public float destinationUpdateInterval = 0.1f;
 
-    [SerializeField]
+    [Header("speed")]
     public float speed = 10f;
+    public float speed_detect = 30f;
+
+    [Header("movement tuning")]
+    public float patrolAcceleration = 8f;
+    public float chaseAcceleration = 40f;
+    public float patrolAngularSpeed = 120f;
+    public float chaseAngularSpeed = 720f;
+
+    [Header("alert")]
+    public float alertDelay = 1.2f;
+    public Color alertColor = new Color(1f, 0.5f, 0f);
 
     // 순찰과 추적 동작에 필요한 주요 참조들.
     private NavMeshAgent agent;
@@ -28,6 +42,8 @@ public class targetAction : MonoBehaviour
     private Renderer rend;
     private Color originalColor;
     private bool isChasingPlayer;
+    private bool isAlertingPlayer;
+    private float alertStartTime;
 
     // 이전 버전에 비해 추가됨:
     // 마지막으로 목적지를 갱신한 시점을 저장해서 더 부드럽게 움직이게 한다.
@@ -43,6 +59,8 @@ public class targetAction : MonoBehaviour
         // pointA부터 순찰을 시작하고, Inspector에 넣은 속도를 NavMeshAgent에 반영한다.
         currentTarget = pointA;
         agent.speed = speed;
+        agent.acceleration = patrolAcceleration;
+        agent.angularSpeed = patrolAngularSpeed;
 
         // 이전 버전에 비해 변경됨:
         // 플레이어 위치까지 파고들지 않고 최소 정지 거리를 유지한다.
@@ -79,19 +97,45 @@ public class targetAction : MonoBehaviour
             float distanceToPlayer = directionToPlayer.magnitude;
             float angleToPlayer = Vector3.Angle(transform.forward, directionToPlayer.normalized);
 
-            if (distanceToPlayer < detectionDistance && angleToPlayer < viewAngle / 2f)
+            if (distanceToPlayer < detectionDistance &&
+                angleToPlayer < viewAngle / 2f &&
+                HasLineOfSightToPlayer())
             {
                 // 추적 상태로 한 번만 전환하고, 색을 바꿔 상태 변화를 보여준다.
-                if (!isChasingPlayer)
+                if (!isChasingPlayer && !isAlertingPlayer)
                 {
+                    isAlertingPlayer = true;
+                    alertStartTime = Time.time;
+                    if (rend != null)
+                    {
+                        rend.material.color = alertColor;
+                    }
+                    agent.isStopped = true;
+                    agent.ResetPath();
+                }
+
+                if (isAlertingPlayer && !isChasingPlayer)
+                {
+                    agent.angularSpeed = chaseAngularSpeed;
+                    RotateTowardsPlayer(directionToPlayer);
+
+                    if (Time.time - alertStartTime < alertDelay)
+                    {
+                        return;
+                    }
+
+                    isAlertingPlayer = false;
                     isChasingPlayer = true;
                     if (rend != null)
                     {
-                        rend.material.color = Color.green;
+                        rend.material.color = Color.red;
                     }
+                    agent.speed = speed_detect;
+                    agent.acceleration = chaseAcceleration;
+                    agent.angularSpeed = chaseAngularSpeed;
+                    agent.isStopped = false;
                 }
 
-                // 이전 버전에 비해 추가됨:
                 // 플레이어의 정확한 위치까지 가는 대신, 앞쪽의 약간 떨어진 지점을 목표로 잡는다.
                 float stopDistance = Mathf.Max(chaseStopDistance, agent.radius + 0.1f);
                 Vector3 targetPosition = player.position - directionToPlayer.normalized * stopDistance;
@@ -124,14 +168,17 @@ public class targetAction : MonoBehaviour
             }
 
             // 플레이어가 감지 범위를 벗어나면 다시 순찰 상태로 돌아가고 색도 복구한다.
-            if (isChasingPlayer)
+            if (isChasingPlayer || isAlertingPlayer)
             {
                 isChasingPlayer = false;
+                isAlertingPlayer = false;
                 if (rend != null)
                 {
                     rend.material.color = originalColor;
                 }
-
+                agent.speed = speed;
+                agent.acceleration = patrolAcceleration;
+                agent.angularSpeed = patrolAngularSpeed;
                 currentTarget = pointA;
                 agent.isStopped = false;
                 SetAgentDestination(currentTarget.position, true);
@@ -147,6 +194,49 @@ public class targetAction : MonoBehaviour
                 SetAgentDestination(currentTarget.position, true);
             }
         }
+    }
+
+    private bool HasLineOfSightToPlayer()
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        Vector3 origin = transform.position + Vector3.up * eyeHeight;
+        Vector3 target = player.position + Vector3.up * playerEyeHeight;
+        Vector3 direction = target - origin;
+        float distance = direction.magnitude;
+
+        if (distance <= 0.01f)
+        {
+            return true;
+        }
+
+        if (Physics.Raycast(origin, direction.normalized, out RaycastHit hit, distance, obstructionMask, QueryTriggerInteraction.Ignore))
+        {
+            // Debug.Log("hit");
+            return hit.transform == player || hit.transform.IsChildOf(player);
+        }
+
+        return false;
+    }
+
+    private void RotateTowardsPlayer(Vector3 directionToPlayer)
+    {
+        Vector3 flatDirection = directionToPlayer;
+        flatDirection.y = 0f;
+
+        if (flatDirection.sqrMagnitude < 0.001f)
+        {
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.LookRotation(flatDirection.normalized);
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            agent.angularSpeed * Time.deltaTime);
     }
 
     private void SetAgentDestination(Vector3 destination, bool force = false)

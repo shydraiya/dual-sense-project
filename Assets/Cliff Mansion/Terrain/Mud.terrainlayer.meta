@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 45c81d73e2f7234488ae70093cea3275
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8574412962073106934
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202818
+  packageName: Cliff Mansion (URP)
+  packageVersion: 1.1
+  assetPath: Assets/Cliff Mansion/Terrain/Mud.terrainlayer
+  uploadId: 459206

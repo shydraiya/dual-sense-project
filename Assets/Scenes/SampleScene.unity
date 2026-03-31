@@ -136,7 +136,7 @@ GameObject:
   - component: {fileID: 18303976}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -721,7 +721,7 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 5000
+  m_ColorTemperature: 5285
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
@@ -812,6 +812,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::targetAction
   pointA: {fileID: 148768945}
   pointB: {fileID: 2096211492}
+  detectionDistance: 10
+  viewAngle: 45
+  chaseStopDistance: 1.2
+  destinationUpdateInterval: 0.1
+  speed: 10
 --- !u!65 &658630299
 BoxCollider:
   m_ObjectHideFlags: 0
